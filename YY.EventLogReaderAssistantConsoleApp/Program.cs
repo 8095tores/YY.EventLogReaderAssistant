@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Threading;
 using YY.EventLogReaderAssistant;
 using YY.EventLogReaderAssistant.EventArguments;
 
@@ -8,6 +10,7 @@ namespace YY.EventLogReaderAssistantConsoleApp
     {
         private static int _eventNumber;
         private static DateTime _lastPeriodEvent = DateTime.MinValue;
+        private static EventLogPosition _currentPosition;
 
         static void Main(string[] args)
         {
@@ -25,19 +28,26 @@ namespace YY.EventLogReaderAssistantConsoleApp
                 reader.BeforeReadFile += Reader_BeforeReadFile;
                 reader.OnErrorEvent += Reader_OnErrorEvent;
 
-                Console.WriteLine($"{DateTime.Now}: Всего событий к обработке: ({reader.Count()})...");
+                if(args.Contains("LastFile"))
+                    reader.LastFile();
+                
+                Console.WriteLine();
                 Console.WriteLine();
                 Console.WriteLine();
 
-                while (reader.Read())
+                while (true)
                 {
-                    // reader.CurrentRow - данные текущего события
-                    _eventNumber += 1;
+                    if (_currentPosition != null)
+                        reader.SetCurrentPosition(_currentPosition);
+
+                    while (reader.Read())
+                    {
+                        // reader.CurrentRow - данные текущего события
+                    }
+
+                    Thread.Sleep(1000);
                 }
             }
-
-            Console.WriteLine($"{DateTime.Now}: Для выхода нажмите любую клавишу...");
-            Console.ReadKey();
         }
 
         private static void Reader_BeforeReadFile(EventLogReader sender, BeforeReadFileEventArgs args)
@@ -61,8 +71,12 @@ namespace YY.EventLogReaderAssistantConsoleApp
 
         private static void Reader_AfterReadEvent(EventLogReader sender, AfterReadEventArgs args)
         {
-            if(args.RowData != null)
+            if (args.RowData != null)
+            {
                 _lastPeriodEvent = args.RowData.Period;
+                _eventNumber += 1;
+                _currentPosition = sender.GetCurrentPosition();
+            }
 
             Console.SetCursorPosition(0, Console.CursorTop - 2);
             Console.WriteLine($"{DateTime.Now}: [+]{_eventNumber}");

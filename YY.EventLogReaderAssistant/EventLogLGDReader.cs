@@ -181,6 +181,10 @@ namespace YY.EventLogReaderAssistant
             _currentFileEventNumber = 0;
             _currentRow = null;
         }
+        public override long FilesCount()
+        {
+            return 1;
+        }
         public override void Dispose()
         {
             base.Dispose();

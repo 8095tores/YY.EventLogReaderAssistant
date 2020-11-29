@@ -34,7 +34,7 @@ namespace YY.EventLogReaderAssistant
         {
             get
             {
-                if (_logFilesWithData.Length <= _indexCurrentFile)
+                if (!LogFileByIndexExist())
                     return null;
                 else
                     return _logFilesWithData[_indexCurrentFile];
@@ -217,9 +217,31 @@ namespace YY.EventLogReaderAssistant
             _currentFileEventNumber = 0;
             _currentRow = null;
         }
-        public override void NextFile()
+        public override long FilesCount()
         {
-            RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
+            return _logFilesWithData.LongLength;
+        }
+        public override bool PreviousFile()
+        {
+            if(_stream != null)
+                RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
+
+            if (_stream != null)
+            {
+                _stream.Dispose();
+                _stream = null;
+            }
+
+            _indexCurrentFile -= 1;
+            _currentFileEventNumber = 0;
+            _eventCount = -1;
+
+            return LogFileByIndexExist();
+        }
+        public override bool NextFile()
+        {
+            if (_stream != null)
+                RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
 
             if (_stream != null)
             {
@@ -228,6 +250,16 @@ namespace YY.EventLogReaderAssistant
             }
 
             _indexCurrentFile += 1;
+            _currentFileEventNumber = 0;
+            _eventCount = -1;
+
+            return LogFileByIndexExist();
+        }
+        public override bool LastFile()
+        {
+            while (NextFile()) { }
+
+            return PreviousFile();
         }
         public override void Dispose()
         {
@@ -309,7 +341,7 @@ namespace YY.EventLogReaderAssistant
         {
             if (_stream == null)
             {
-                if (_logFilesWithData.Length <= _indexCurrentFile)
+                if (!LogFileByIndexExist())
                 {
                     _currentRow = null;
                     return false;
@@ -445,6 +477,12 @@ namespace YY.EventLogReaderAssistant
                     attemptToFoundBeginEventLine += 1;
                 }
             }
+        }
+
+        private bool LogFileByIndexExist()
+        {
+            return _indexCurrentFile < _logFilesWithData.Length
+                && _indexCurrentFile >= 0;
         }
 
         #endregion

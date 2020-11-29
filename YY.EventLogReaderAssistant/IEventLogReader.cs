@@ -11,6 +11,9 @@ namespace YY.EventLogReaderAssistant
         void SetCurrentPosition(EventLogPosition newPosition);
         long Count();
         void Reset();
-        void NextFile();
+        long FilesCount();
+        bool PreviousFile();
+        bool NextFile();
+        bool LastFile();
     }
 }

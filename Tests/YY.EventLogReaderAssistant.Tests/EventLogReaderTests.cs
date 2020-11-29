@@ -322,27 +322,39 @@ namespace YY.EventLogReaderAssistant.Tests
         }
         private void GetCountLogFiles_Test(string eventLogPath)
         {
-            long countLogFiles = 0;
+            long countLogFilesByNextFile = 0;
+            long countLogFilesByPreviousFile = 0;
+            long countLogFilesByCount;
 
             using (EventLogReader reader = EventLogReader.CreateReader(eventLogPath))
             {
                 reader.Reset();
+                countLogFilesByCount = reader.FilesCount();
 
                 if (reader is EventLogLGFReader readerLGF)
                 {
                     while (readerLGF.CurrentFile != null)
                     {
                         reader.NextFile();
-                        countLogFiles += 1;
+                        countLogFilesByNextFile += 1;
+                    }
+
+                    while (readerLGF.PreviousFile())
+                    {
+                        countLogFilesByPreviousFile += 1;
                     }
                 }
                 else if (reader is EventLogLGDReader)
                 {
-                    countLogFiles = 1;
+                    countLogFilesByNextFile = 1;
+                    countLogFilesByPreviousFile = 1;
                 }
             }
 
-            Assert.NotEqual(0, countLogFiles);
+            Assert.NotEqual(0, countLogFilesByNextFile);
+            Assert.NotEqual(0, countLogFilesByPreviousFile);
+            Assert.Equal(countLogFilesByCount, countLogFilesByNextFile);
+            Assert.Equal(countLogFilesByCount, countLogFilesByPreviousFile);
         }
         private void GoToEvent_Test(string eventLogPath)
         {
