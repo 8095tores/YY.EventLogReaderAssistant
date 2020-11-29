@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("YY.EventLogReaderAssistant.Tests")]
 namespace YY.EventLogReaderAssistant
@@ -15,5 +16,7 @@ namespace YY.EventLogReaderAssistant
         bool PreviousFile();
         bool NextFile();
         bool LastFile();
+        void SetTimeZone(TimeZoneInfo timeZone);
+        TimeZoneInfo GetTimeZone();
     }
 }

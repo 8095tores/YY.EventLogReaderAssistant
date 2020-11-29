@@ -17,11 +17,16 @@ namespace YY.EventLogReaderAssistantConsoleApp
             if (args.Length == 0)
                 return;
 
+            TimeZoneInfo timeZoneSetting = TimeZoneInfo.Local;
+            if (args.Length >= 3)
+                timeZoneSetting = TimeZoneInfo.FindSystemTimeZoneById(args[2]);
+
             string dataDirectoryPath = args[0];
             Console.WriteLine($"{DateTime.Now}: Инициализация чтения логов \"{dataDirectoryPath}\"...");
 
             using (EventLogReader reader = EventLogReader.CreateReader(dataDirectoryPath))
             {
+                reader.SetTimeZone(timeZoneSetting);
                 InitializingEventHandlers(reader);
                 if (args.Contains("LastFile"))
                     reader.LastFile();

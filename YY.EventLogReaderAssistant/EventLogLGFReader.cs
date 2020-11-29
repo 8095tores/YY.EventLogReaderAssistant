@@ -247,7 +247,7 @@ namespace YY.EventLogReaderAssistant
         }
         protected override void ReadEventLogReferences()
         {
-            DateTime beginReadReferences = DateTime.Now;
+            DateTime beginReadReferences = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _logTimeZoneInfo);
             _referencesData = new ReferencesData();
 
             var referencesInfo = LogParser.GetEventLogReferences();
