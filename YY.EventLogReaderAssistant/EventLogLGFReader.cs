@@ -223,8 +223,7 @@ namespace YY.EventLogReaderAssistant
         }
         public override bool PreviousFile()
         {
-            if(_stream != null)
-                RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
+            RaiseAfterReadFileIfIsNecessary();
 
             if (_stream != null)
             {
@@ -240,8 +239,7 @@ namespace YY.EventLogReaderAssistant
         }
         public override bool NextFile()
         {
-            if (_stream != null)
-                RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
+            RaiseAfterReadFileIfIsNecessary();
 
             if (_stream != null)
             {
@@ -478,11 +476,16 @@ namespace YY.EventLogReaderAssistant
                 }
             }
         }
-
         private bool LogFileByIndexExist()
         {
             return _indexCurrentFile < _logFilesWithData.Length
                 && _indexCurrentFile >= 0;
+        }
+
+        private void RaiseAfterReadFileIfIsNecessary()
+        {
+            if (_stream != null)
+                RaiseAfterReadFile(new AfterReadFileEventArgs(CurrentFile));
         }
 
         #endregion

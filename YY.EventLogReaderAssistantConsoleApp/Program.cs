@@ -22,19 +22,10 @@ namespace YY.EventLogReaderAssistantConsoleApp
 
             using (EventLogReader reader = EventLogReader.CreateReader(dataDirectoryPath))
             {
-                reader.AfterReadEvent += Reader_AfterReadEvent;
-                reader.AfterReadFile += Reader_AfterReadFile;
-                reader.BeforeReadEvent += Reader_BeforeReadEvent;
-                reader.BeforeReadFile += Reader_BeforeReadFile;
-                reader.OnErrorEvent += Reader_OnErrorEvent;
-
-                if(args.Contains("LastFile"))
+                InitializingEventHandlers(reader);
+                if (args.Contains("LastFile"))
                     reader.LastFile();
                 
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine();
-
                 while (true)
                 {
                     if (_currentPosition != null)
@@ -56,19 +47,16 @@ namespace YY.EventLogReaderAssistantConsoleApp
             Console.WriteLine($"{DateTime.Now}: {_eventNumber}");
             Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
         }
-
         private static void Reader_AfterReadFile(EventLogReader sender, AfterReadFileEventArgs args)
         {
             Console.WriteLine($"{DateTime.Now}: Окончание чтения файла \"{args.FileName}\"");
         }
-
         private static void Reader_BeforeReadEvent(EventLogReader sender, BeforeReadEventArgs args)
         {
             Console.SetCursorPosition(0, Console.CursorTop - 2);
             Console.WriteLine($"{DateTime.Now}: (+){_eventNumber}");
             Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
         }
-
         private static void Reader_AfterReadEvent(EventLogReader sender, AfterReadEventArgs args)
         {
             if (args.RowData != null)
@@ -82,10 +70,17 @@ namespace YY.EventLogReaderAssistantConsoleApp
             Console.WriteLine($"{DateTime.Now}: [+]{_eventNumber}");
             Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
         }
-
         private static void Reader_OnErrorEvent(EventLogReader sender, OnErrorEventArgs args)
         {
             Console.WriteLine($"{DateTime.Now}: Ошибка чтения логов \"{args.Exception}\"");
+        }
+        private static void InitializingEventHandlers(EventLogReader reader)
+        {
+            reader.AfterReadEvent += Reader_AfterReadEvent;
+            reader.AfterReadFile += Reader_AfterReadFile;
+            reader.BeforeReadEvent += Reader_BeforeReadEvent;
+            reader.BeforeReadFile += Reader_BeforeReadFile;
+            reader.OnErrorEvent += Reader_OnErrorEvent;
         }
     }
 }
