@@ -115,7 +115,19 @@ namespace YY.EventLogReaderAssistant
         {
             throw new NotImplementedException();
         }
-        public virtual void NextFile()
+        public virtual long FilesCount()
+        {
+            throw new NotImplementedException();
+        }
+        public virtual bool PreviousFile()
+        {
+            throw new NotImplementedException();
+        }
+        public virtual bool NextFile()
+        {
+            throw new NotImplementedException();
+        }
+        public virtual bool LastFile()
         {
             throw new NotImplementedException();
         }
