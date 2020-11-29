@@ -54,7 +54,7 @@ namespace YY.EventLogReaderAssistant
         protected readonly string _logFilePath;
         protected readonly string _logFileDirectoryPath;
         protected long _currentFileEventNumber;
-
+        protected TimeZoneInfo _logTimeZoneInfo;
         protected DateTime _referencesReadDate;
         protected ReferencesData _referencesData;
         protected RowData _currentRow;
@@ -69,7 +69,7 @@ namespace YY.EventLogReaderAssistant
         {
             _logFilePath = logFilePath;
             _logFileDirectoryPath = new FileInfo(_logFilePath).Directory?.FullName;
-
+            _logTimeZoneInfo = TimeZoneInfo.Local;
             _referencesReadDate = DateTime.MinValue;
             ReadEventLogReferences();
         }
@@ -130,6 +130,14 @@ namespace YY.EventLogReaderAssistant
         public virtual bool LastFile()
         {
             throw new NotImplementedException();
+        }
+        public void SetTimeZone(TimeZoneInfo timeZone)
+        {
+            _logTimeZoneInfo = timeZone;
+        }
+        public TimeZoneInfo GetTimeZone()
+        {
+            return _logTimeZoneInfo;
         }
         public virtual void Dispose()
         {

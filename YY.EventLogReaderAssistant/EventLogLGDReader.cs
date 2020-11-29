@@ -300,7 +300,7 @@ namespace YY.EventLogReaderAssistant
         }
         protected override void ReadEventLogReferences()
         {
-            DateTime beginReadReferences = DateTime.Now;
+            DateTime beginReadReferences = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _logTimeZoneInfo);
 
             using (_connection = new SQLiteConnection(ConnectionString))
             {
