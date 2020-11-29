@@ -223,35 +223,11 @@ namespace YY.EventLogReaderAssistant
         }
         public override bool PreviousFile()
         {
-            RaiseAfterReadFileIfIsNecessary();
-
-            if (_stream != null)
-            {
-                _stream.Dispose();
-                _stream = null;
-            }
-
-            _indexCurrentFile -= 1;
-            _currentFileEventNumber = 0;
-            _eventCount = -1;
-
-            return LogFileByIndexExist();
+            return ChangeFileStep(-1);
         }
         public override bool NextFile()
         {
-            RaiseAfterReadFileIfIsNecessary();
-
-            if (_stream != null)
-            {
-                _stream.Dispose();
-                _stream = null;
-            }
-
-            _indexCurrentFile += 1;
-            _currentFileEventNumber = 0;
-            _eventCount = -1;
-
-            return LogFileByIndexExist();
+            return ChangeFileStep(1);
         }
         public override bool LastFile()
         {
@@ -481,7 +457,22 @@ namespace YY.EventLogReaderAssistant
             return _indexCurrentFile < _logFilesWithData.Length
                 && _indexCurrentFile >= 0;
         }
+        private bool ChangeFileStep(int fileIndexStepToChange)
+        {
+            RaiseAfterReadFileIfIsNecessary();
 
+            if (_stream != null)
+            {
+                _stream.Dispose();
+                _stream = null;
+            }
+
+            _indexCurrentFile += fileIndexStepToChange;
+            _currentFileEventNumber = 0;
+            _eventCount = -1;
+
+            return LogFileByIndexExist();
+        }
         private void RaiseAfterReadFileIfIsNecessary()
         {
             if (_stream != null)
