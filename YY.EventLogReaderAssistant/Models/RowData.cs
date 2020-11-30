@@ -19,6 +19,7 @@ namespace YY.EventLogReaderAssistant.Models
         #region Public Members
 
         public DateTime Period { get; set; }
+        public DateTime PeriodUTC { get; set; }
         public long RowId { get; set; }
         public Severity Severity { get; set; }
         public long? ConnectId { get; set; }
@@ -48,6 +49,7 @@ namespace YY.EventLogReaderAssistant.Models
             DateTime rowPeriod = sqlReader.GetInt64OrDefault(1).ToDateTimeFormat();
             RowId = sqlReader.GetInt64OrDefault(0);
             Period = rowPeriod;
+            PeriodUTC = TimeZoneInfo.ConvertTimeToUtc(rowPeriod, reader.GetTimeZone());
             ConnectId = sqlReader.GetInt64OrDefault(2);
             Session = sqlReader.GetInt64OrDefault(3);
             TransactionStatus = reader.GetTransactionStatus(sqlReader.GetInt64OrDefault(4));
@@ -71,9 +73,11 @@ namespace YY.EventLogReaderAssistant.Models
         internal void FillByStringParsedData(EventLogLGFReader reader, string[] parseResult)
         {
             string transactionSourceString = parseResult[2].RemoveBraces();
+            DateTime rowPeriod = DateTime.ParseExact(parseResult[0], "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 
             RowId = reader.CurrentFileEventNumber;
-            Period = DateTime.ParseExact(parseResult[0], "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            Period = rowPeriod;
+            PeriodUTC = TimeZoneInfo.ConvertTimeToUtc(rowPeriod, reader.GetTimeZone());
             TransactionStatus = reader.GetTransactionStatus(parseResult[1]);
             TransactionDate = GetTransactionDate(transactionSourceString);
             TransactionId = GetTransactionId(transactionSourceString);
