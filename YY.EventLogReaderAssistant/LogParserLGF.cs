@@ -1,6 +1,6 @@
 ﻿using YY.EventLogReaderAssistant.Models;
+using YY.EventLogReaderAssistant.Helpers;
 using System;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
 
@@ -9,6 +9,13 @@ namespace YY.EventLogReaderAssistant
 {
     internal sealed class LogParserLGF
     {
+        #region Private Static Members
+
+        private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
+        private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
+
+        #endregion
+
         #region Static Methods
 
         public static bool ItsBeginOfEvent(string sourceString)
@@ -72,7 +79,7 @@ namespace YY.EventLogReaderAssistant
         }
         public RowData Parse(string eventSource)
         {
-            string[] parseResult = ParseEventLogString(eventSource);
+            string[] parseResult = ParseEventLogString(eventSource, LogParserModeLGF.EventLogRow);
             RowData dataRow = null;
 
             if (parseResult != null)
@@ -83,7 +90,7 @@ namespace YY.EventLogReaderAssistant
 
             return dataRow;
         }
-        public static string[] ParseEventLogString(string sourceString)
+        public static string[] ParseEventLogString(string sourceString, LogParserModeLGF mode = LogParserModeLGF.Common)
         {
             string[] resultStrings = null;
             string preparedString = sourceString.Substring(1, (sourceString.EndsWith(",") ? sourceString.Length - 3 : sourceString.Length - 2)) + ",";
@@ -93,11 +100,16 @@ namespace YY.EventLogReaderAssistant
             while (delimIndex > 0)
             {
                 partNumber += 1;
-                bufferString += preparedString.Substring(0, delimIndex).Trim();
+                if (mode == LogParserModeLGF.EventLogRow
+                    && (i == _commentPartNumber || i == _dataPartNumber))
+                {
+                    bufferString += preparedString.Substring(0, delimIndex);
+                } else
+                    bufferString += preparedString.Substring(0, delimIndex).Trim();
                 preparedString = preparedString.Substring(delimIndex + 1);
-                bool isSpecialString = IsSpeacialString(bufferString, partNumber);
+                bool isSpecialString = IsSpecialString(bufferString, partNumber);
 
-                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString))
+                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString, mode))
                 {
                     i += 1;
                     bufferString = string.Empty;
@@ -117,22 +129,39 @@ namespace YY.EventLogReaderAssistant
 
         #region Private Methods
 
-        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString)
+        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString, LogParserModeLGF mode)
         {
             bool output = false;
 
             if (IsCorrectLogPart(bufferString, isSpecialString))
             {
                 Array.Resize(ref resultStrings, i + 1);
-                bufferString = RemoveDoubleQuotes(bufferString);
-                if (isSpecialString) bufferString = RemoveSpecialSymbols(bufferString);
+                bufferString = bufferString.RemoveDoubleQuotes();
+
+                if (mode == LogParserModeLGF.EventLogRow && i == _commentPartNumber)
+                {
+                    // Текст комментария заменяем двойные кавычки (экранирование) на обычные
+                    bufferString = bufferString
+                        .Replace("\"\"", "\"")
+                        .Trim();
+                } else if (mode == LogParserModeLGF.EventLogRow && i == _dataPartNumber)
+                {
+                    // Для текста данных только обрезаем "по краям" незначащие символы
+                    bufferString = bufferString.Trim();
+                }
+                else
+                {
+                    if (isSpecialString && !string.IsNullOrEmpty(bufferString))
+                        bufferString = bufferString.RemoveSpecialSymbols();
+                }
+
                 resultStrings[i] = bufferString;
                 output = true;
             }
 
             return output;
         }
-        private static bool IsSpeacialString(string sourceString, int partNumber)
+        private static bool IsSpecialString(string sourceString, int partNumber)
         {
             bool isSpecialString = partNumber == 1 &&
                                    !string.IsNullOrEmpty(sourceString)
@@ -152,25 +181,6 @@ namespace YY.EventLogReaderAssistant
             }
 
             return counterBeginCurlyBrace == counterEndCurlyBrace & counterSlash == 0;
-        }
-        private static string RemoveSpecialSymbols(string sourceString)
-        {
-            char[] denied_nullChar = new[] { '\t', '\r' };
-            char[] denied_whitespaceChar = new[] { '\n' };
-
-            string newString = string.Join("", sourceString
-                .Select(c => denied_whitespaceChar.Contains(c) ? ' ' : c)
-                .Where(c => !denied_nullChar.Contains(c))
-                .ToArray());
-
-            return newString;
-        }
-        private static string RemoveDoubleQuotes(string sourceString)
-        {
-            if (sourceString.StartsWith("\"") && sourceString.EndsWith("\""))
-                return sourceString.Substring(1, sourceString.Length - 2);
-            else
-                return sourceString;
         }
         private static int GetDelimiterIndex(string sourceString, bool isSpecialString = false)
         {
