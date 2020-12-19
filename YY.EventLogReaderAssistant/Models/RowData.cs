@@ -9,12 +9,20 @@ namespace YY.EventLogReaderAssistant.Models
     [Serializable]
     public class RowData
     {
+        #region Private Static Members
+
         private static readonly Regex _regexDataUuid;
+
+        #endregion
+
+        #region Constructors
 
         static RowData()
         {
             _regexDataUuid = new Regex(@"[\d]+:[\dA-Za-zА-Яа-я]{32}");
         }
+
+        #endregion
 
         #region Public Members
 
@@ -27,6 +35,16 @@ namespace YY.EventLogReaderAssistant.Models
         public TransactionStatus TransactionStatus { get; set; }
         public DateTime? TransactionDate { get; set; }
         public long? TransactionId { get; set; }
+        public string TransactionPresentation
+        {
+            get
+            {
+                if(TransactionDate != null && TransactionId != null)
+                    return $"{TransactionDate?.ToString("dd.MM.yyyy HH:mm:ss")} ({TransactionId})";
+
+                return string.Empty;
+            }
+        }
         public Users User { get; set; }
         public Computers Computer { get; set; }
         public Applications Application { get; set; }
@@ -72,35 +90,38 @@ namespace YY.EventLogReaderAssistant.Models
 
         internal void FillByStringParsedData(EventLogLGFReader reader, string[] parseResult)
         {
-            string transactionSourceString = parseResult[2].RemoveBraces();
-            DateTime rowPeriod = DateTime.ParseExact(parseResult[0], "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            string transactionSourceString = EventLogRowPartLGF.TransactionData.Parse(parseResult)
+                .RemoveBraces()
+                .Trim();
+            string rowPeriodAsString = EventLogRowPartLGF.Period.Parse(parseResult);
+            DateTime rowPeriod = DateTime.ParseExact(rowPeriodAsString, "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 
             RowId = reader.CurrentFileEventNumber;
             Period = rowPeriod;
             PeriodUTC = TimeZoneInfo.ConvertTimeToUtc(rowPeriod, reader.GetTimeZone());
-            TransactionStatus = reader.GetTransactionStatus(parseResult[1]);
+            TransactionStatus = reader.GetTransactionStatus(EventLogRowPartLGF.TransactionStatus.Parse(parseResult));
             TransactionDate = GetTransactionDate(transactionSourceString);
             TransactionId = GetTransactionId(transactionSourceString);
-            User = reader.GetUserByCode(parseResult[3]);
-            Computer = reader.GetComputerByCode(parseResult[4]);
-            Application = reader.GetApplicationByCode(parseResult[5]);
-            ConnectId = parseResult[6].ToInt32();
-            Event = reader.GetEventByCode(parseResult[7]);
-            Severity = reader.GetSeverityByCode(parseResult[8]);
-            Comment = parseResult[9].RemoveQuotes();
-            Metadata = reader.GetMetadataByCode(parseResult[10]);
-            Data = GetData(parseResult[11]);
-            DataPresentation = parseResult[12].RemoveQuotes();
-            WorkServer = reader.GetWorkServerByCode(parseResult[13]);
-            PrimaryPort = reader.GetPrimaryPortByCode(parseResult[14]);
-            SecondaryPort = reader.GetSecondaryPortByCode(parseResult[15]);
-            Session = parseResult[16].ToInt64();
+            User = reader.GetUserByCode(EventLogRowPartLGF.User.Parse(parseResult));
+            Computer = reader.GetComputerByCode(EventLogRowPartLGF.Computer.Parse(parseResult));
+            Application = reader.GetApplicationByCode(EventLogRowPartLGF.Application.Parse(parseResult));
+            ConnectId = EventLogRowPartLGF.ConnectId.Parse<int>(parseResult);
+            Event = reader.GetEventByCode(EventLogRowPartLGF.Event.Parse(parseResult));
+            Severity = reader.GetSeverityByCode(EventLogRowPartLGF.Severity.Parse(parseResult));
+            Comment = EventLogRowPartLGF.Comment.Parse(parseResult).RemoveQuotes();
+            Metadata = reader.GetMetadataByCode(EventLogRowPartLGF.Metadata.Parse(parseResult));
+            Data = GetData(EventLogRowPartLGF.Data.Parse(parseResult));
+            DataPresentation = EventLogRowPartLGF.DataPresentation.Parse(parseResult).RemoveQuotes();
+            WorkServer = reader.GetWorkServerByCode(EventLogRowPartLGF.WorkServer.Parse(parseResult));
+            PrimaryPort = reader.GetPrimaryPortByCode(EventLogRowPartLGF.PrimaryPort.Parse(parseResult));
+            SecondaryPort = reader.GetSecondaryPortByCode(EventLogRowPartLGF.SecondaryPort.Parse(parseResult));
+            Session = EventLogRowPartLGF.Session.Parse<long>(parseResult);
             DataUuid = GetDataUuid(Data);
         }
 
         #endregion
 
-        #region Private Members
+        #region Private Methods
 
         private string GetDataUuid(string sourceData)
         {

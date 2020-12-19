@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -13,7 +14,6 @@ namespace YY.EventLogReaderAssistant.Helpers
         {
             return Convert.ToInt64(sourceValue.ToUpper(), 16);
         }
-
         public static string RemoveQuotes(this string sourceValue)
         {
             string functionReturnValue = sourceValue;
@@ -30,22 +30,18 @@ namespace YY.EventLogReaderAssistant.Helpers
 
             return functionReturnValue;
         }
-
         public static string RemoveBraces(this string sourceString)
         {
             return sourceString.Replace("}", "").Replace("{", "");
         }
-
         public static int ToInt32(this string sourceString)
         {
             return Convert.ToInt32(sourceString);
         }
-
         public static long ToInt64(this string sourceString)
         {
             return Convert.ToInt64(sourceString);
         }
-
         public static string FromWin1251ToUtf8(this string sourceValue)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -54,11 +50,40 @@ namespace YY.EventLogReaderAssistant.Helpers
 
             return ConvertEncoding(sourceValue, win1251, utf8);
         }
-
         public static Guid ToGuid(this string sourceValue)
         {
             Guid.TryParse(sourceValue, out Guid guidFromString);
             return guidFromString;
+        }
+        public static string RemoveSpecialSymbols(this string sourceString)
+        {
+            char[] denied_nullChar = new[] { '\t', '\r' };
+            char[] denied_whitespaceChar = new[] { '\n' };
+
+            return RemoveSpecialSymbols(sourceString, denied_nullChar, denied_whitespaceChar);
+        }
+        public static string RemoveSpecialSymbols(this string sourceString, char[] deniedNullChars, char[] deniedWhitespaceChars)
+        {
+            string newString = string.Join("", sourceString
+                .Select(c => deniedWhitespaceChars.Contains(c) ? ' ' : c)
+                .Where(c => !deniedNullChars.Contains(c))
+                .ToArray());
+
+            return newString;
+        }
+        public static string RemoveCarriageReturnSymbol(this string sourceString)
+        {
+            char[] denied_nullChar = new[] { '\r' };
+            char[] denied_whitespaceChar = new[] { ' ' };
+
+            return RemoveSpecialSymbols(sourceString, denied_nullChar, denied_whitespaceChar);
+        }
+        public static string RemoveDoubleQuotes(this string sourceString)
+        {
+            if (sourceString.StartsWith("\"") && sourceString.EndsWith("\""))
+                return sourceString.Substring(1, sourceString.Length - 2);
+            else
+                return sourceString;
         }
 
         #endregion

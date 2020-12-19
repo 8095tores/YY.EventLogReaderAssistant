@@ -2,11 +2,14 @@
 using System.Data;
 using System.Data.SQLite;
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
+using System.Xml.Linq;
 using Xunit;
 using YY.EventLogReaderAssistant.EventArguments;
 using YY.EventLogReaderAssistant.Helpers;
 using YY.EventLogReaderAssistant.Models;
+using YY.EventLogReaderAssistant.Tests.Helpers;
 
 namespace YY.EventLogReaderAssistant.Tests
 {
@@ -22,6 +25,7 @@ namespace YY.EventLogReaderAssistant.Tests
         private readonly string _sampleDatabaseFileLgdReadReferencesIfChanged;
         private readonly string _sampleDatabaseFileLGFBrokenFile;
         private readonly string _sampleDatabaseFileLGFOnChanging;
+        private readonly string _sampleDatabaseFileLGFFullComparison;
 
         private OnErrorEventArgs _lastErrorData;
         private long _eventCountSuccess;
@@ -40,12 +44,15 @@ namespace YY.EventLogReaderAssistant.Tests
             _sampleDatabaseFileLGF = Path.Combine(sampleDataDirectory, "LGFFormatEventLog", "1Cv8.lgf");
             _sampleDatabaseFileLgd = Path.Combine(sampleDataDirectory, "SQLiteFormatEventLog", "1Cv8.lgd");
             _sampleDatabaseFileLgdReadReferencesIfChanged = Path.Combine(
-                sampleDataDirectory, "SQLiteFormatEventLog", "1Cv8_ReadRefferences_IfChanged_Test.lgd");
+                sampleDataDirectory, "SQLiteFormatEventLog", "1Cv8_ReadReferences_IfChanged_Test.lgd");
             _sampleDatabaseFileLGFBrokenFile = Path.Combine(sampleDataDirectory, "LGFFormatEventLogBrokenFile", "1Cv8.lgf");
             _sampleDatabaseFileLGFOnChanging = Path.Combine(sampleDataDirectory, "LGFFormatEventLogOnChanging", "1Cv8.lgf");
-
+            _sampleDatabaseFileLGFFullComparison = Path.Combine(sampleDataDirectory, "LGFFullComparison", "1Cv8.lgf");
             _eventCountSuccess = 0;
             _eventCountError = 0;
+
+            string _sampleDatabaseFileLGFFullComparisonZIP = Path.Combine(sampleDataDirectory, "LGFFullComparison.zip");
+            ZipFile.ExtractToDirectory(_sampleDatabaseFileLGFFullComparisonZIP, sampleDataDirectory, true);
         }
 
         #endregion
@@ -202,6 +209,78 @@ namespace YY.EventLogReaderAssistant.Tests
             Assert.Equal(newLogRecordPeriod.Hour, lastRowData.Period.Hour);
             Assert.Equal(newLogRecordPeriod.Minute, lastRowData.Period.Minute);
             Assert.Equal(newLogRecordPeriod.Second, lastRowData.Period.Second);
+        }
+        [Fact]
+        public void FullComparison_LGF_Test()
+        {
+            FileInfo sampleDataFileInfo = new FileInfo(_sampleDatabaseFileLGFFullComparison);
+            if (sampleDataFileInfo.Directory == null)
+                throw new Exception("Test data directory is not exist.");
+
+            string originalDataFile = Path.Combine(sampleDataFileInfo.Directory.FullName, "EventLogNormalizeDataForComparison.xml");
+
+            using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFFullComparison))
+            {
+                string ns = "http://v8.1c.ru/eventLog";
+                XDocument xdoc = XDocument.Load(originalDataFile);
+                if (xdoc.Root != null)
+                    foreach (XElement eventElement in xdoc.Root?.Elements(XName.Get("Event", ns)))
+                    {
+                        var xmlRow = new
+                        {
+                            Level = eventElement.Element(XName.Get("Level", ns))?.Value ?? string.Empty,
+                            Date = eventElement.Element(XName.Get("Date", ns))?.Value.ToDateTime() ?? DateTime.MinValue,
+                            ApplicationName = eventElement.Element(XName.Get("ApplicationName", ns))?.Value ??
+                                              string.Empty,
+                            Event = eventElement.Element(XName.Get("Event", ns))?.Value ?? string.Empty,
+                            User = eventElement.Element(XName.Get("User", ns))?.Value.ToGuid() ?? Guid.Empty,
+                            UserName = eventElement.Element(XName.Get("UserName", ns))?.Value ?? string.Empty,
+                            Computer = eventElement.Element(XName.Get("Computer", ns))?.Value ?? string.Empty,
+                            MetadataPresentation = eventElement.Element(XName.Get("MetadataPresentation", ns))?.Value ??
+                                                   string.Empty,
+                            Comment = eventElement.Element(XName.Get("Comment", ns))?.Value ?? string.Empty,
+                            DataPresentation = eventElement.Element(XName.Get("DataPresentation", ns))?.Value ??
+                                               string.Empty,
+                            TransactionStatus = eventElement.Element(XName.Get("TransactionStatus", ns))?.Value ??
+                                                string.Empty,
+                            TransactionID = eventElement.Element(XName.Get("TransactionID", ns))?.Value ?? string.Empty,
+                            Connection = eventElement.Element(XName.Get("Connection", ns))?.Value.ToInt32() ?? 0,
+                            Session = eventElement.Element(XName.Get("Session", ns))?.Value.ToInt32() ?? 0,
+                            ServerName = eventElement.Element(XName.Get("ServerName", ns))?.Value ?? string.Empty,
+                            Port = eventElement.Element(XName.Get("Port", ns))?.Value ?? string.Empty,
+                            SyncPort = eventElement.Element(XName.Get("SyncPort", ns))?.Value ?? string.Empty,
+                            Data = eventElement.Element(XName.Get("Data", ns))?.Value ?? string.Empty
+                        };
+
+                        reader.Read();
+                        var eventLogRow = reader.CurrentRow;
+
+                        Assert.NotNull(eventLogRow);
+                        Assert.Equal(xmlRow.Level, eventLogRow.Severity.ToString());
+                        Assert.Equal(xmlRow.Date, eventLogRow.Period);
+                        Assert.Equal(xmlRow.ApplicationName, eventLogRow.Application?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.Event, eventLogRow.Event?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.User, eventLogRow.User?.Uuid ?? Guid.Empty);
+                        Assert.Equal(xmlRow.UserName, eventLogRow.User?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.Computer, eventLogRow.Computer?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.MetadataPresentation.Replace(" ", string.Empty),
+                            eventLogRow.Metadata?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.Comment, eventLogRow.Comment ?? string.Empty);
+                        Assert.Equal(xmlRow.DataPresentation, eventLogRow.DataPresentation ?? string.Empty);
+                        // TODO: Сравнение невозможно, т.к. в штатной выгрузке статус формируется не "как есть", а с предварительной обработкой
+                        // Оставлю это на будущее
+                        //Assert.Equal(xmlRow.TransactionStatus, eventLogRow.TransactionStatus.ToString());
+                        Assert.Equal(xmlRow.TransactionID, eventLogRow.TransactionPresentation);
+                        Assert.Equal(xmlRow.Connection, eventLogRow.ConnectId);
+                        Assert.Equal(xmlRow.Session, eventLogRow.Session);
+                        Assert.Equal(xmlRow.ServerName, eventLogRow.WorkServer?.Name ?? string.Empty);
+                        Assert.Equal(xmlRow.Port, eventLogRow.PrimaryPort?.Name ?? "0");
+                        Assert.Equal(xmlRow.SyncPort, eventLogRow.SecondaryPort?.Name ?? "0");
+                        // TODO: Сравнение данных из штатной выгрузки XML и полученными данными из файла 1 в 1 невозможны, т.к. штатная выгрузка платформы
+                        // выполняет подготовительные действия. Поэтому эту часть оставим на будущее.
+                        //Assert.Equal(xmlRow.Data, eventLogRow.Data);
+                    }
+            }
         }
 
         #endregion

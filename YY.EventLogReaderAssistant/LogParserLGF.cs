@@ -1,6 +1,6 @@
 ﻿using YY.EventLogReaderAssistant.Models;
+using YY.EventLogReaderAssistant.Helpers;
 using System;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
 
@@ -9,6 +9,17 @@ namespace YY.EventLogReaderAssistant
 {
     internal sealed class LogParserLGF
     {
+        #region Private Static Members
+
+        private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
+        private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
+        private static readonly int _dataPresentationPartNumber = EventLogRowPartLGF.DataPresentation.AsInt();
+        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){([\\w\\W]+|)},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfData                                           = new Regex("},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfDataPresentation                                                 = new Regex(",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+
+        #endregion
+
         #region Static Methods
 
         public static bool ItsBeginOfEvent(string sourceString)
@@ -72,7 +83,7 @@ namespace YY.EventLogReaderAssistant
         }
         public RowData Parse(string eventSource)
         {
-            string[] parseResult = ParseEventLogString(eventSource);
+            string[] parseResult = ParseEventLogString(eventSource, LogParserModeLGF.EventLogRow);
             RowData dataRow = null;
 
             if (parseResult != null)
@@ -83,21 +94,26 @@ namespace YY.EventLogReaderAssistant
 
             return dataRow;
         }
-        public static string[] ParseEventLogString(string sourceString)
+        public static string[] ParseEventLogString(string sourceString, LogParserModeLGF mode = LogParserModeLGF.Common)
         {
             string[] resultStrings = null;
             string preparedString = sourceString.Substring(1, (sourceString.EndsWith(",") ? sourceString.Length - 3 : sourceString.Length - 2)) + ",";
             string bufferString = string.Empty;
-            int i = 0, partNumber = 0, delimIndex = GetDelimiterIndex(preparedString);
-
-            while (delimIndex > 0)
+            int i = 0, partNumber = 0, delimiterIndex = GetDelimiterIndex(preparedString, false, LogParserModeLGF.Common, 0, out var forceAddResult);
+            
+            while (delimiterIndex > 0)
             {
                 partNumber += 1;
-                bufferString += preparedString.Substring(0, delimIndex).Trim();
-                preparedString = preparedString.Substring(delimIndex + 1);
-                bool isSpecialString = IsSpeacialString(bufferString, partNumber);
+                if (mode == LogParserModeLGF.EventLogRow
+                    && (i == _commentPartNumber || i == _dataPartNumber))
+                {
+                    bufferString += preparedString.Substring(0, delimiterIndex);
+                } else
+                    bufferString += preparedString.Substring(0, delimiterIndex).Trim();
+                preparedString = preparedString.Substring(delimiterIndex + 1);
+                bool isSpecialString = IsSpecialString(bufferString, partNumber);
 
-                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString))
+                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString, mode, forceAddResult))
                 {
                     i += 1;
                     bufferString = string.Empty;
@@ -107,7 +123,7 @@ namespace YY.EventLogReaderAssistant
                 else
                     bufferString += ",";
 
-                delimIndex = GetDelimiterIndex(preparedString, isSpecialString);
+                delimiterIndex = GetDelimiterIndex(preparedString, isSpecialString, mode, i, out forceAddResult);
             }
 
             return resultStrings;
@@ -117,22 +133,53 @@ namespace YY.EventLogReaderAssistant
 
         #region Private Methods
 
-        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString)
+        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString, LogParserModeLGF mode, bool forceAddResult = false)
         {
             bool output = false;
 
-            if (IsCorrectLogPart(bufferString, isSpecialString))
+            if (forceAddResult || IsCorrectLogPart(bufferString, isSpecialString))
             {
                 Array.Resize(ref resultStrings, i + 1);
-                bufferString = RemoveDoubleQuotes(bufferString);
-                if (isSpecialString) bufferString = RemoveSpecialSymbols(bufferString);
+                bufferString = bufferString.RemoveDoubleQuotes();
+
+                if (mode == LogParserModeLGF.EventLogRow && i == _commentPartNumber)
+                {
+                    // Текст комментария заменяем двойные кавычки (экранирование) на обычные и обрезаем "по краям"
+                    // Плюс убираем символ '\r' - возврат каретки
+                    bufferString = bufferString
+                        .Replace("\"\"", "\"")
+                        .RemoveCarriageReturnSymbol()
+                        .Trim();
+                } else if (mode == LogParserModeLGF.EventLogRow && i == _dataPartNumber)
+                {
+                    // Для текста данных только обрезаем "по краям" незначащие символы
+                    // Плюс убираем символ '\r' - возврат каретки
+                    bufferString = bufferString
+                        .RemoveCarriageReturnSymbol()
+                        .Trim();
+                }
+                else if (mode == LogParserModeLGF.EventLogRow && i == _dataPresentationPartNumber)
+                {
+                    // Для текста представления данных удаляем служебные символы и обрезаем "по краям"
+                    // Плюс убираем символ '\r' - возврат каретки
+                    bufferString = bufferString//.RemoveSpecialSymbols()
+                        .Replace("\"\"", "\"")
+                        .RemoveCarriageReturnSymbol()
+                        .Trim();
+                }
+                else
+                {
+                    if (isSpecialString && !string.IsNullOrEmpty(bufferString))
+                        bufferString = bufferString.RemoveSpecialSymbols();
+                }
+
                 resultStrings[i] = bufferString;
                 output = true;
             }
 
             return output;
         }
-        private static bool IsSpeacialString(string sourceString, int partNumber)
+        private static bool IsSpecialString(string sourceString, int partNumber)
         {
             bool isSpecialString = partNumber == 1 &&
                                    !string.IsNullOrEmpty(sourceString)
@@ -153,31 +200,37 @@ namespace YY.EventLogReaderAssistant
 
             return counterBeginCurlyBrace == counterEndCurlyBrace & counterSlash == 0;
         }
-        private static string RemoveSpecialSymbols(string sourceString)
+        private static int GetDelimiterIndex(string sourceString, bool isSpecialString, LogParserModeLGF mode, int partIndex, out bool forceAddResult)
         {
-            char[] denied_nullChar = new[] { '\t', '\r' };
-            char[] denied_whitespaceChar = new[] { '\n' };
+            forceAddResult = false;
 
-            string newString = string.Join("", sourceString
-                .Select(c => denied_whitespaceChar.Contains(c) ? ' ' : c)
-                .Where(c => !denied_nullChar.Contains(c))
-                .ToArray());
-
-            return newString;
-        }
-        private static string RemoveDoubleQuotes(string sourceString)
-        {
-            if (sourceString.StartsWith("\"") && sourceString.EndsWith("\""))
-                return sourceString.Substring(1, sourceString.Length - 2);
-            else
-                return sourceString;
-        }
-        private static int GetDelimiterIndex(string sourceString, bool isSpecialString = false)
-        {
+            if (mode == LogParserModeLGF.EventLogRow && partIndex == _commentPartNumber)
+            {
+                var matchResult = _regexEndOfComment.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index + 1;
+            }
+            
+            if (mode == LogParserModeLGF.EventLogRow && partIndex == _dataPartNumber)
+            {
+                var matchResult = _regexEndOfData.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index + 1;
+            }
+            
+            if (mode == LogParserModeLGF.EventLogRow && partIndex == _dataPresentationPartNumber)
+            {
+                var matchResult = _regexEndOfDataPresentation.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index;
+            }
+            
             if (isSpecialString)
+            {
                 return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
-            else
-                return sourceString.IndexOf(",", StringComparison.Ordinal);
+            }
+            
+            return sourceString.IndexOf(",", StringComparison.Ordinal);
         }
         private static int CountSubstring(string sourceString, string sourceSubstring)
         {
