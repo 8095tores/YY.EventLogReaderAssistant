@@ -13,8 +13,10 @@ namespace YY.EventLogReaderAssistant
 
         private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
         private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
-        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){");
-        private static readonly Regex _regexEndOfData = new Regex("\"},.+\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,)");
+        private static readonly int _dataPresentationPartNumber = EventLogRowPartLGF.DataPresentation.AsInt();
+        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){[\\w\\W]+},\"[\\w\\W]+\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfData = new Regex("\"},\"[\\w\\W]+\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfDataPresentation     = new Regex("\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
 
         #endregion
 
@@ -95,10 +97,9 @@ namespace YY.EventLogReaderAssistant
         public static string[] ParseEventLogString(string sourceString, LogParserModeLGF mode = LogParserModeLGF.Common)
         {
             string[] resultStrings = null;
-            bool forceAddResult;
             string preparedString = sourceString.Substring(1, (sourceString.EndsWith(",") ? sourceString.Length - 3 : sourceString.Length - 2)) + ",";
             string bufferString = string.Empty;
-            int i = 0, partNumber = 0, delimiterIndex = GetDelimiterIndex(preparedString, false, LogParserModeLGF.Common, 0, out forceAddResult);
+            int i = 0, partNumber = 0, delimiterIndex = GetDelimiterIndex(preparedString, false, LogParserModeLGF.Common, 0, out var forceAddResult);
             
             while (delimiterIndex > 0)
             {
@@ -143,7 +144,7 @@ namespace YY.EventLogReaderAssistant
 
                 if (mode == LogParserModeLGF.EventLogRow && i == _commentPartNumber)
                 {
-                    // Текст комментария заменяем двойные кавычки (экранирование) на обычные
+                    // Текст комментария заменяем двойные кавычки (экранирование) на обычные и обрезаем "по краям"
                     bufferString = bufferString
                         .Replace("\"\"", "\"")
                         .Trim();
@@ -151,6 +152,11 @@ namespace YY.EventLogReaderAssistant
                 {
                     // Для текста данных только обрезаем "по краям" незначащие символы
                     bufferString = bufferString.Trim();
+                }
+                else if (mode == LogParserModeLGF.EventLogRow && i == _dataPresentationPartNumber)
+                {
+                    // Для текста представления данных удаляем служебные символы и обрезаем "по краям"
+                    bufferString = bufferString.RemoveSpecialSymbols().Trim();
                 }
                 else
                 {
@@ -200,6 +206,12 @@ namespace YY.EventLogReaderAssistant
                 var matchResult = _regexEndOfData.Match(sourceString);
                 forceAddResult = true;
                 return matchResult.Index + 2;
+            }
+            else if (mode == LogParserModeLGF.EventLogRow && partIndex == _dataPresentationPartNumber)
+            {
+                var matchResult = _regexEndOfDataPresentation.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index + 1;
             }
             else if (isSpecialString)
             {
