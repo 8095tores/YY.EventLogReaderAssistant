@@ -13,7 +13,8 @@ namespace YY.EventLogReaderAssistant
 
         private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
         private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
-        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){\"[URNC]\"},\"");
+        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){");
+        private static readonly Regex _regexEndOfData = new Regex("\"},.+\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,)");
 
         #endregion
 
@@ -187,16 +188,22 @@ namespace YY.EventLogReaderAssistant
         private static int GetDelimiterIndex(string sourceString, bool isSpecialString, LogParserModeLGF mode, int partIndex, out bool forceAddResult)
         {
             forceAddResult = false;
-            if (isSpecialString)
+
+            if (mode == LogParserModeLGF.EventLogRow && partIndex == _commentPartNumber)
             {
-                if (mode == LogParserModeLGF.EventLogRow && partIndex == _commentPartNumber)
-                {
-                    var matchResult = _regexEndOfComment.Match(sourceString);
-                    forceAddResult = true;
-                    return matchResult.Index + 1;
-                }
-                else
-                    return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
+                var matchResult = _regexEndOfComment.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index + 1;
+            }
+            else if (mode == LogParserModeLGF.EventLogRow && partIndex == _dataPartNumber)
+            {
+                var matchResult = _regexEndOfData.Match(sourceString);
+                forceAddResult = true;
+                return matchResult.Index + 2;
+            }
+            else if (isSpecialString)
+            {
+                return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
             }
             else
                 return sourceString.IndexOf(",", StringComparison.Ordinal);
