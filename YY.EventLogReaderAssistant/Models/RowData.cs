@@ -35,6 +35,16 @@ namespace YY.EventLogReaderAssistant.Models
         public TransactionStatus TransactionStatus { get; set; }
         public DateTime? TransactionDate { get; set; }
         public long? TransactionId { get; set; }
+        public string TransactionPresentation
+        {
+            get
+            {
+                if(TransactionDate != null && TransactionId != null)
+                    return $"{TransactionDate?.ToString("dd.MM.yyyy HH:mm:ss")} ({TransactionId})";
+
+                return string.Empty;
+            }
+        }
         public Users User { get; set; }
         public Computers Computer { get; set; }
         public Applications Application { get; set; }
@@ -111,7 +121,7 @@ namespace YY.EventLogReaderAssistant.Models
 
         #endregion
 
-        #region Private Members
+        #region Private Methods
 
         private string GetDataUuid(string sourceData)
         {
