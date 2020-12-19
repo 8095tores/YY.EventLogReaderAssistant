@@ -13,6 +13,7 @@ namespace YY.EventLogReaderAssistant
 
         private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
         private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
+        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){\"[URNC]\"},\"");
 
         #endregion
 
@@ -93,23 +94,24 @@ namespace YY.EventLogReaderAssistant
         public static string[] ParseEventLogString(string sourceString, LogParserModeLGF mode = LogParserModeLGF.Common)
         {
             string[] resultStrings = null;
+            bool forceAddResult;
             string preparedString = sourceString.Substring(1, (sourceString.EndsWith(",") ? sourceString.Length - 3 : sourceString.Length - 2)) + ",";
             string bufferString = string.Empty;
-            int i = 0, partNumber = 0, delimIndex = GetDelimiterIndex(preparedString);
-
-            while (delimIndex > 0)
+            int i = 0, partNumber = 0, delimiterIndex = GetDelimiterIndex(preparedString, false, LogParserModeLGF.Common, 0, out forceAddResult);
+            
+            while (delimiterIndex > 0)
             {
                 partNumber += 1;
                 if (mode == LogParserModeLGF.EventLogRow
                     && (i == _commentPartNumber || i == _dataPartNumber))
                 {
-                    bufferString += preparedString.Substring(0, delimIndex);
+                    bufferString += preparedString.Substring(0, delimiterIndex);
                 } else
-                    bufferString += preparedString.Substring(0, delimIndex).Trim();
-                preparedString = preparedString.Substring(delimIndex + 1);
+                    bufferString += preparedString.Substring(0, delimiterIndex).Trim();
+                preparedString = preparedString.Substring(delimiterIndex + 1);
                 bool isSpecialString = IsSpecialString(bufferString, partNumber);
 
-                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString, mode))
+                if (AddResultString(ref resultStrings, ref i, ref bufferString, isSpecialString, mode, forceAddResult))
                 {
                     i += 1;
                     bufferString = string.Empty;
@@ -119,7 +121,7 @@ namespace YY.EventLogReaderAssistant
                 else
                     bufferString += ",";
 
-                delimIndex = GetDelimiterIndex(preparedString, isSpecialString);
+                delimiterIndex = GetDelimiterIndex(preparedString, isSpecialString, mode, i, out forceAddResult);
             }
 
             return resultStrings;
@@ -129,11 +131,11 @@ namespace YY.EventLogReaderAssistant
 
         #region Private Methods
 
-        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString, LogParserModeLGF mode)
+        private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString, LogParserModeLGF mode, bool forceAddResult = false)
         {
             bool output = false;
 
-            if (IsCorrectLogPart(bufferString, isSpecialString))
+            if (forceAddResult || IsCorrectLogPart(bufferString, isSpecialString))
             {
                 Array.Resize(ref resultStrings, i + 1);
                 bufferString = bufferString.RemoveDoubleQuotes();
@@ -182,10 +184,20 @@ namespace YY.EventLogReaderAssistant
 
             return counterBeginCurlyBrace == counterEndCurlyBrace & counterSlash == 0;
         }
-        private static int GetDelimiterIndex(string sourceString, bool isSpecialString = false)
+        private static int GetDelimiterIndex(string sourceString, bool isSpecialString, LogParserModeLGF mode, int partIndex, out bool forceAddResult)
         {
+            forceAddResult = false;
             if (isSpecialString)
-                return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
+            {
+                if (mode == LogParserModeLGF.EventLogRow && partIndex == _commentPartNumber)
+                {
+                    var matchResult = _regexEndOfComment.Match(sourceString);
+                    forceAddResult = true;
+                    return matchResult.Index + 1;
+                }
+                else
+                    return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
+            }
             else
                 return sourceString.IndexOf(",", StringComparison.Ordinal);
         }
