@@ -145,18 +145,27 @@ namespace YY.EventLogReaderAssistant
                 if (mode == LogParserModeLGF.EventLogRow && i == _commentPartNumber)
                 {
                     // Текст комментария заменяем двойные кавычки (экранирование) на обычные и обрезаем "по краям"
+                    // Плюс убираем символ '\r' - возврат каретки
                     bufferString = bufferString
                         .Replace("\"\"", "\"")
+                        .RemoveCarriageReturnSymbol()
                         .Trim();
                 } else if (mode == LogParserModeLGF.EventLogRow && i == _dataPartNumber)
                 {
                     // Для текста данных только обрезаем "по краям" незначащие символы
-                    bufferString = bufferString.Trim();
+                    // Плюс убираем символ '\r' - возврат каретки
+                    bufferString = bufferString
+                        .RemoveCarriageReturnSymbol()
+                        .Trim();
                 }
                 else if (mode == LogParserModeLGF.EventLogRow && i == _dataPresentationPartNumber)
                 {
                     // Для текста представления данных удаляем служебные символы и обрезаем "по краям"
-                    bufferString = bufferString.RemoveSpecialSymbols().Trim();
+                    // Плюс убираем символ '\r' - возврат каретки
+                    bufferString = bufferString//.RemoveSpecialSymbols()
+                        .Replace("\"\"", "\"")
+                        .RemoveCarriageReturnSymbol()
+                        .Trim();
                 }
                 else
                 {
