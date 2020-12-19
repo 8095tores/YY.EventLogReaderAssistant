@@ -71,6 +71,13 @@ namespace YY.EventLogReaderAssistant.Helpers
 
             return newString;
         }
+        public static string RemoveCarriageReturnSymbol(this string sourceString)
+        {
+            char[] denied_nullChar = new[] { '\r' };
+            char[] denied_whitespaceChar = new[] { ' ' };
+
+            return RemoveSpecialSymbols(sourceString, denied_nullChar, denied_whitespaceChar);
+        }
         public static string RemoveDoubleQuotes(this string sourceString)
         {
             if (sourceString.StartsWith("\"") && sourceString.EndsWith("\""))
