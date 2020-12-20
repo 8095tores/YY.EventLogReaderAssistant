@@ -25,6 +25,7 @@ namespace YY.EventLogReaderAssistant.Tests
         private readonly string _sampleDatabaseFileLgdReadReferencesIfChanged;
         private readonly string _sampleDatabaseFileLGFBrokenFile;
         private readonly string _sampleDatabaseFileLGFOnChanging;
+        private readonly string _sampleDatabaseFileLGFSpecialCases;
         private readonly string _sampleDatabaseFileLGFFullComparison;
 
         private OnErrorEventArgs _lastErrorData;
@@ -47,6 +48,7 @@ namespace YY.EventLogReaderAssistant.Tests
                 sampleDataDirectory, "SQLiteFormatEventLog", "1Cv8_ReadReferences_IfChanged_Test.lgd");
             _sampleDatabaseFileLGFBrokenFile = Path.Combine(sampleDataDirectory, "LGFFormatEventLogBrokenFile", "1Cv8.lgf");
             _sampleDatabaseFileLGFOnChanging = Path.Combine(sampleDataDirectory, "LGFFormatEventLogOnChanging", "1Cv8.lgf");
+            _sampleDatabaseFileLGFSpecialCases = Path.Combine(sampleDataDirectory, "LGFFormatSpecialCases", "1Cv8.lgf");
             _sampleDatabaseFileLGFFullComparison = Path.Combine(sampleDataDirectory, "LGFFullComparison", "1Cv8.lgf");
             _eventCountSuccess = 0;
             _eventCountError = 0;
@@ -209,6 +211,26 @@ namespace YY.EventLogReaderAssistant.Tests
             Assert.Equal(newLogRecordPeriod.Hour, lastRowData.Period.Hour);
             Assert.Equal(newLogRecordPeriod.Minute, lastRowData.Period.Minute);
             Assert.Equal(newLogRecordPeriod.Second, lastRowData.Period.Second);
+        }
+        [Fact]
+        public void ReadSpecialCases_OldFormat_LGF_Test()
+        {
+            RowData firstRow = null;
+            using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFSpecialCases))
+            {
+                if (reader.Read())
+                    firstRow = reader.CurrentRow;
+            }
+            
+            Assert.NotNull(firstRow);
+
+            string expectedData =
+                "{\"P\",\n" +
+                "{1,\n" +
+                "{\"S\",\"Редактирование\"}\n" +
+                "}\n" +
+                "}";
+            Assert.Equal(expectedData, firstRow.Data);
         }
         [Fact]
         public void FullComparison_LGF_Test()

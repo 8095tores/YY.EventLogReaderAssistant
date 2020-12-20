@@ -18,7 +18,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void RemoveQuotes_Test()
         {
@@ -30,6 +29,24 @@ namespace YY.EventLogReaderAssistant.Tests.Services
         }
 
         [Fact]
+        public void RemoveDoubleQuotes_1_Test()
+        {
+            string sourceValue = "\"Hello, world!\"";
+            string checkValue = "Hello, world!";
+            string resultValue = sourceValue.RemoveDoubleQuotes();
+
+            Assert.Equal(checkValue, resultValue);
+        }
+        [Fact]
+        public void RemoveDoubleQuotes_2_Test()
+        {
+            string sourceValue = "\"";
+            string checkValue = "";
+            string resultValue = sourceValue.RemoveDoubleQuotes();
+
+            Assert.Equal(checkValue, resultValue);
+        }
+        [Fact]
         public void RemoveBraces_Test()
         {
             string sourceValue = "{Hello, world!}";
@@ -38,7 +55,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void ToInt32_Test()
         {
@@ -48,7 +64,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void ToInt64_Test()
         {
@@ -58,7 +73,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void FromWin1251ToUTF8_Test()
         {
@@ -71,7 +85,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void ToGuid_WrongValue_Test()
         {
@@ -81,7 +94,6 @@ namespace YY.EventLogReaderAssistant.Tests.Services
 
             Assert.Equal(checkValue, resultValue);
         }
-
         [Fact]
         public void ToGuid_CorrectValue_Test()
         {
