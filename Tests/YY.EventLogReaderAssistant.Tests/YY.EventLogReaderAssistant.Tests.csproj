@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <Folder Include="SampleData\LGFFormatEventLog\" />
+    <Folder Include="SampleData\LGFFormatSpecialCases\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,6 +64,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="SampleData\LGFFormatEventLog\20200412130000.lgp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="SampleData\LGFFormatSpecialCases\1Cv8.lgf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="SampleData\LGFFormatSpecialCases\20201217170000.lgp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="SampleData\LGFFullComparison.zip">
