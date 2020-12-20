@@ -81,7 +81,11 @@ namespace YY.EventLogReaderAssistant.Helpers
         public static string RemoveDoubleQuotes(this string sourceString)
         {
             if (sourceString.StartsWith("\"") && sourceString.EndsWith("\""))
-                return sourceString.Substring(1, sourceString.Length - 2);
+            {
+                if (sourceString.Length >= 3)
+                    return sourceString.Substring(1, sourceString.Length - 2);
+                return string.Empty;
+            }
             else
                 return sourceString;
         }
