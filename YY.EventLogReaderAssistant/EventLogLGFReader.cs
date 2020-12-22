@@ -120,7 +120,7 @@ namespace YY.EventLogReaderAssistant
                                 if (_readAttempts > _maxReadAttempts)
                                 {
                                     readFinished = true;
-                                    RaiseOnError(new OnErrorEventArgs(ex, preparedSourceData, false));
+                                    RaiseOnError(new OnErrorEventArgs(ex, preparedSourceData, false, positionBeforeRead));
                                 }
                                 else
                                 {
