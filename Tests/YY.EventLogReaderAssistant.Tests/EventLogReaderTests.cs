@@ -216,21 +216,33 @@ namespace YY.EventLogReaderAssistant.Tests
         public void ReadSpecialCases_OldFormat_LGF_Test()
         {
             RowData firstRow = null;
+            RowData secondRow = null;
             using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFSpecialCases))
             {
                 if (reader.Read())
                     firstRow = reader.CurrentRow;
+                if (reader.Read())
+                    secondRow = reader.CurrentRow;
             }
             
             Assert.NotNull(firstRow);
+            Assert.NotNull(secondRow);
 
-            string expectedData =
+            string expectedDataFirstRow =
                 "{\"P\",\n" +
                 "{1,\n" +
                 "{\"S\",\"Редактирование\"}\n" +
                 "}\n" +
                 "}";
-            Assert.Equal(expectedData, firstRow.Data);
+            Assert.Equal(expectedDataFirstRow, firstRow.Data);
+            string expectedDataSecondRow =
+                "{\"P\",\n" +
+                "{6,\n" +
+                "{\"S\",\"Чтение\"},\n" +
+                "{\"U\"}\n" +
+                "}\n" +
+                "}";
+            Assert.Equal(expectedDataSecondRow, secondRow.Data);
         }
         [Fact]
         public void FullComparison_LGF_Test()
