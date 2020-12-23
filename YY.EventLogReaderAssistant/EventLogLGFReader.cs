@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using YY.EventLogReaderAssistant.EventArguments;
 using YY.EventLogReaderAssistant.Helpers;
 using YY.EventLogReaderAssistant.Models;
@@ -19,6 +20,9 @@ namespace YY.EventLogReaderAssistant
         private int _indexCurrentFile;
         private string[] _logFilesWithData;
         private long _eventCount = -1;
+        private readonly int _maxReadAttempts = 3;
+        private readonly int _delayReadAttemptsMs = 1000;
+        private int _readAttempts;
 
         StreamReader _stream;
         readonly StringBuilder _eventSource;
@@ -58,7 +62,7 @@ namespace YY.EventLogReaderAssistant
 
         public override bool Read()
         {
-            bool output;
+            bool output = false;
 
             try
             {
@@ -71,46 +75,69 @@ namespace YY.EventLogReaderAssistant
                     NextFile();
                     return Read();
                 }
-
-                bool newLine = true, textBlockOpen = false;
+                bool newLine = true, textBlockOpen = false, readFinished = false;
                 int countBracket = 0;
+                EventLogPosition positionBeforeRead = GetCurrentPosition();
+                _readAttempts = 1;
 
                 while (true)
                 {
-                    string sourceData = ReadSourceDataFromStream();
-                    if (sourceData == null)
+                    while (_readAttempts > 0 && _readAttempts <= 3)
                     {
-                        NextFile();
-                        output = Read();
-                        break;
-                    }
-                    AddNewLineToSource(sourceData, newLine);
-
-                    if (LogParserLGF.ItsEndOfEvent(sourceData, ref countBracket, ref textBlockOpen))
-                    {
-                        _currentFileEventNumber += 1;
-                        string preparedSourceData = _eventSource.ToString();
-
-                        RaiseBeforeRead(new BeforeReadEventArgs(preparedSourceData, _currentFileEventNumber));
-
-                        try
+                        string sourceData = ReadSourceDataFromStream();
+                        if (sourceData == null)
                         {
-                            RowData eventData = ReadRowData(preparedSourceData);
-                            _currentRow = eventData;
-                            RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
-                            output = true;
+                            NextFile();
+                            output = Read();
+                            _readAttempts = 0;
+                            readFinished = true;
                             break;
                         }
-                        catch (Exception ex)
+
+                        AddNewLineToSource(sourceData, newLine);
+
+                        if (LogParserLGF.ItsEndOfEvent(sourceData, ref countBracket, ref textBlockOpen))
                         {
-                            RaiseOnError(new OnErrorEventArgs(ex, preparedSourceData, false));
-                            _currentRow = null;
-                            output = true;
-                            break;
+                            _currentFileEventNumber += 1;
+                            string preparedSourceData = _eventSource.ToString().Trim();
+
+                            RaiseBeforeRead(new BeforeReadEventArgs(preparedSourceData, _currentFileEventNumber));
+
+                            try
+                            {
+                                RowData eventData = ReadRowData(preparedSourceData);
+                                _currentRow = eventData;
+                                _readAttempts = 0;
+                                RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
+                                output = true;
+                                readFinished = true;
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _readAttempts += 1;
+                                _currentRow = null;
+                                if (_readAttempts > _maxReadAttempts)
+                                {
+                                    readFinished = true;
+                                    RaiseOnError(new OnErrorEventArgs(ex, preparedSourceData, false, positionBeforeRead));
+                                }
+                                else
+                                {
+                                    readFinished = false;
+                                    _eventSource.Clear();
+                                    SetCurrentPosition(positionBeforeRead);
+                                    Thread.Sleep(_delayReadAttemptsMs);
+                                }
+
+                                output = true;
+                                break;
+                            }
                         }
+                        newLine = false;
                     }
 
-                    newLine = false;
+                    if(readFinished) break;
                 }
             }
             catch (Exception ex)
