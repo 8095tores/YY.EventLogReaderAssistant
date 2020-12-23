@@ -14,9 +14,9 @@ namespace YY.EventLogReaderAssistant
         private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
         private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
         private static readonly int _dataPresentationPartNumber = EventLogRowPartLGF.DataPresentation.AsInt();
-        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){([\\w\\W]+|)},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
-        private static readonly Regex _regexEndOfData                                           = new Regex("},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
-        private static readonly Regex _regexEndOfDataPresentation                                                 = new Regex(",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){([\\w\\W]+|)},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfData                                           = new Regex("},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfDataPresentation                                                 = new Regex(",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
 
         #endregion
 
