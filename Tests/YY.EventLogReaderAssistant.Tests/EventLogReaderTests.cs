@@ -217,16 +217,20 @@ namespace YY.EventLogReaderAssistant.Tests
         {
             RowData firstRow = null;
             RowData secondRow = null;
+            RowData thirdRow = null;
             using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFSpecialCases))
             {
                 if (reader.Read())
                     firstRow = reader.CurrentRow;
                 if (reader.Read())
                     secondRow = reader.CurrentRow;
+                if (reader.Read())
+                    thirdRow = reader.CurrentRow;
             }
             
             Assert.NotNull(firstRow);
             Assert.NotNull(secondRow);
+            Assert.NotNull(thirdRow);
 
             string expectedDataFirstRow =
                 "{\"P\",\n" +
@@ -243,6 +247,8 @@ namespace YY.EventLogReaderAssistant.Tests
                 "}\n" +
                 "}";
             Assert.Equal(expectedDataSecondRow, secondRow.Data);
+            Assert.Equal(new DateTime(2020,8,25,0,22,17), thirdRow.TransactionDate);
+            Assert.Equal(211, thirdRow.TransactionId);
         }
         [Fact]
         public void FullComparison_LGF_Test()
