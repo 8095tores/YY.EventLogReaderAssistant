@@ -15,7 +15,7 @@ namespace YY.EventLogReaderAssistant
         #region Private Member Variables
 
         private string _connectionString;
-        private string ConnectionString => _connectionString ?? (_connectionString = SQLiteExtensions.GetConnectionString(_logFilePath));
+        private string ConnectionString => _connectionString ??= SQLiteExtensions.GetConnectionString(_logFilePath);
         private SQLiteConnection _connection;
         private readonly List<RowData> _readBuffer;
         private long _lastRowId;
@@ -48,6 +48,7 @@ namespace YY.EventLogReaderAssistant
         {
             bool output;
 
+            DateTime maxLogPeriod = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _logTimeZoneInfo).AddMilliseconds((-1) * _readDelayMs);
             try
             {
                 RaiseBeforeReadFileEvent(out bool cancelBeforeReadFile);
@@ -70,11 +71,10 @@ namespace YY.EventLogReaderAssistant
                 RaiseBeforeRead(new BeforeReadEventArgs(null, _eventCount));
 
                 _currentRow = _readBuffer.FirstOrDefault(bufRow => bufRow.RowId > _lastRowId);
-                if (_currentRow == null)
+                if (_currentRow == null || _currentRow.Period >= maxLogPeriod)
                 {
                     return false;
                 }
-
 
                 _lastRowId = _currentRow.RowId;
                 _lastRowNumberFromBuffer += 1;

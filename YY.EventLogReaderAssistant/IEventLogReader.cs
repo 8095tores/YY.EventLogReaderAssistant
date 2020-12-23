@@ -16,6 +16,7 @@ namespace YY.EventLogReaderAssistant
         bool PreviousFile();
         bool NextFile();
         bool LastFile();
+        void SetDelayMs(int delay);
         void SetTimeZone(TimeZoneInfo timeZone);
         TimeZoneInfo GetTimeZone();
     }

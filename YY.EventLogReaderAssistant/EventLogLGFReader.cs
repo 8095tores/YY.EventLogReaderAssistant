@@ -80,6 +80,7 @@ namespace YY.EventLogReaderAssistant
                 EventLogPosition positionBeforeRead = GetCurrentPosition();
                 _readAttempts = 1;
 
+                DateTime maxLogPeriod = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _logTimeZoneInfo).AddMilliseconds((-1) * _readDelayMs);
                 while (true)
                 {
                     while (_readAttempts > 0 && _readAttempts <= 3)
@@ -106,12 +107,23 @@ namespace YY.EventLogReaderAssistant
                             try
                             {
                                 RowData eventData = ReadRowData(preparedSourceData);
-                                _currentRow = eventData;
-                                _readAttempts = 0;
-                                RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
-                                output = true;
-                                readFinished = true;
-                                break;
+                                if (eventData.Period >= maxLogPeriod)
+                                {
+                                    _currentRow = null;
+                                    _readAttempts = 0;
+                                    output = false;
+                                    readFinished = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    _currentRow = eventData;
+                                    _readAttempts = 0;
+                                    RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
+                                    output = true;
+                                    readFinished = true;
+                                    break;
+                                }
                             }
                             catch (Exception ex)
                             {
