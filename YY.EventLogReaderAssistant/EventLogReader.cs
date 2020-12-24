@@ -51,6 +51,7 @@ namespace YY.EventLogReaderAssistant
 
         #region Private Member Variables
 
+        protected int _readDelayMs = 60000;
         protected readonly string _logFilePath;
         protected readonly string _logFileDirectoryPath;
         protected long _currentFileEventNumber;
@@ -130,6 +131,10 @@ namespace YY.EventLogReaderAssistant
         public virtual bool LastFile()
         {
             throw new NotImplementedException();
+        }
+        public virtual void SetDelayMs(int delay)
+        {
+            _readDelayMs = delay;
         }
         public void SetTimeZone(TimeZoneInfo timeZone)
         {

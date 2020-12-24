@@ -77,7 +77,11 @@ namespace YY.EventLogReaderAssistantConsoleApp
         }
         private static void Reader_OnErrorEvent(EventLogReader sender, OnErrorEventArgs args)
         {
-            Console.WriteLine($"{DateTime.Now}: Ошибка чтения логов \"{args.Exception}\"");
+            Console.WriteLine($"{DateTime.Now}: Ошибка чтения логов \n\"{args.Exception}\"\n" +
+                              $"Стэк вызова: {args.Exception.StackTrace}\n" +
+                              $"Файл: {args.BeginEventPosition.CurrentFileData}\n" +
+                              $"Позиция в файле: {args.BeginEventPosition.StreamPosition}\n" +
+                              $"Номер события: {args.BeginEventPosition.EventNumber}");
         }
         private static void InitializingEventHandlers(EventLogReader reader)
         {

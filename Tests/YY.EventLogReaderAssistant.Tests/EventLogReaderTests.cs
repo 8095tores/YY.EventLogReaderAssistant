@@ -174,6 +174,7 @@ namespace YY.EventLogReaderAssistant.Tests
 
             using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFOnChanging))
             {
+                reader.SetDelayMs(0);
                 long totalEvents = reader.Count();
                 long currentEventNumber = 0;
                 
