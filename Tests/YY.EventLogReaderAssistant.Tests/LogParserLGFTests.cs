@@ -38,33 +38,7 @@ namespace YY.EventLogReaderAssistant.Tests
 
             Assert.True(itsBeginOfEvent);
         }
-
-        [Fact]
-        public void ItsEndOfEvent_Test()
-        {
-            int countBracket = 0;
-            bool textBlockOpen = false;
-            string sourceData =
-                "{20200412134348,N,\n" +
-                "{ 0,0},1,1,1,1,1,I,\"\",0,\n" +
-                "{ \"U\"},\"\",1,1,0,1,0,\n" +
-                "{ 0}\n" +
-                "}";
-
-            string[] sourceDataArray = sourceData.Split('\n');
-
-            bool itsEndOfEvent = false;
-            int lineNumber;
-            for (lineNumber = 0; lineNumber < sourceDataArray.Length; lineNumber++)
-            {
-                string currentString = sourceDataArray[lineNumber];
-                itsEndOfEvent = LogParserLGF.ItsEndOfEvent(currentString, ref countBracket, ref textBlockOpen);
-            }                
-
-            Assert.True(itsEndOfEvent);
-            Assert.Equal(sourceDataArray.Length, lineNumber);
-        }
-
+        
         [Fact]
         public void ReadEventLogReferences_Test()
         {

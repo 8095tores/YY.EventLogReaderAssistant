@@ -1,6 +1,7 @@
 ﻿using YY.EventLogReaderAssistant.Models;
 using YY.EventLogReaderAssistant.Helpers;
 using System;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
 
@@ -29,31 +30,13 @@ namespace YY.EventLogReaderAssistant
 
             return Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,");
         }
-        public static bool ItsEndOfEvent(string sourceString, ref int count, ref bool textBlockOpen)
+        public static bool ItsEndOfEvent(StreamReader stream)
         {
-            if (sourceString == null)
-                return false;
+            long previousStreamPosition = stream.GetPosition();
+            string nextString = stream.ReadLineWithoutNull();
+            stream.SetPosition(previousStreamPosition);
 
-            string bufferString = sourceString;
-
-            for (int i = 0; i <= bufferString.Length - 1; i++)
-            {
-                string simb = bufferString.Substring(i, 1);
-                if (simb == "\"")
-                {
-                    textBlockOpen = !textBlockOpen;
-                }
-                else if (simb == "}" & !textBlockOpen)
-                {
-                    count -= 1;
-                }
-                else if (simb == "{" & !textBlockOpen)
-                {
-                    count += 1;
-                }
-            }
-
-            return (count == 0);
+            return ItsBeginOfEvent(nextString) || nextString == null;
         }
 
         #endregion
