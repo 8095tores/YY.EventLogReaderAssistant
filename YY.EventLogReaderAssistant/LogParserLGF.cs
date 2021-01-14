@@ -28,7 +28,8 @@ namespace YY.EventLogReaderAssistant
             if (sourceString == null)
                 return false;
 
-            return Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,");
+            return Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,")
+                && !Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,[\da-zA-Z]+},");
         }
         public static bool ItsEndOfEvent(StreamReader stream)
         {
