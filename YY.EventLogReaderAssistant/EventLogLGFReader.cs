@@ -75,8 +75,7 @@ namespace YY.EventLogReaderAssistant
                     NextFile();
                     return Read();
                 }
-                bool newLine = true, textBlockOpen = false, readFinished = false;
-                int countBracket = 0;
+                bool newLine = true, readFinished = false;
                 EventLogPosition positionBeforeRead = GetCurrentPosition();
                 _readAttempts = 1;
 
@@ -96,8 +95,8 @@ namespace YY.EventLogReaderAssistant
                         }
 
                         AddNewLineToSource(sourceData, newLine);
-
-                        if (LogParserLGF.ItsEndOfEvent(sourceData, ref countBracket, ref textBlockOpen))
+                        
+                        if (LogParserLGF.ItsEndOfEvent(_stream))
                         {
                             _currentFileEventNumber += 1;
                             string preparedSourceData = _eventSource.ToString().Trim();
@@ -115,15 +114,13 @@ namespace YY.EventLogReaderAssistant
                                     readFinished = true;
                                     break;
                                 }
-                                else
-                                {
-                                    _currentRow = eventData;
-                                    _readAttempts = 0;
-                                    RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
-                                    output = true;
-                                    readFinished = true;
-                                    break;
-                                }
+
+                                _currentRow = eventData;
+                                _readAttempts = 0;
+                                RaiseAfterRead(new AfterReadEventArgs(_currentRow, _currentFileEventNumber));
+                                output = true;
+                                readFinished = true;
+                                break;
                             }
                             catch (Exception ex)
                             {
