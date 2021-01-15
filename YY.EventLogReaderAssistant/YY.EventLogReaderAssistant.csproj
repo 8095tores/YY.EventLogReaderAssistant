@@ -32,4 +32,19 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="RegexPatterns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RegexPatterns.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="RegexPatterns.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>RegexPatterns.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

@@ -15,9 +15,9 @@ namespace YY.EventLogReaderAssistant
         private static readonly int _commentPartNumber = EventLogRowPartLGF.Comment.AsInt();
         private static readonly int _dataPartNumber = EventLogRowPartLGF.Data.AsInt();
         private static readonly int _dataPresentationPartNumber = EventLogRowPartLGF.DataPresentation.AsInt();
-        private static readonly Regex _regexEndOfComment = new Regex("\",[\\d]+.(\\n|\\r|\\r\\n){([\\w\\W]+|)},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
-        private static readonly Regex _regexEndOfData                                           = new Regex("},\"([\\w\\W]+|)\",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
-        private static readonly Regex _regexEndOfDataPresentation                                                 = new Regex(",[\\d]+,[\\d]+,[\\d]+,[\\d]+,[\\d]+,([\\d]+,|)([\\d]+,|)(\\n|\\r|\\r\\n){[\\d,]+}(\\n|\\r|\\r\\n)(}|,|)");
+        private static readonly Regex _regexEndOfComment = new Regex(RegexPatterns.EndOfComment);
+        private static readonly Regex _regexEndOfData = new Regex(RegexPatterns.EndOfData);
+        private static readonly Regex _regexEndOfDataPresentation = new Regex(RegexPatterns.EndOfDataPresentation);
 
         #endregion
 
@@ -106,6 +106,11 @@ namespace YY.EventLogReaderAssistant
                 }
                 else
                     bufferString += ",";
+
+                if (preparedString.Length > 0 && preparedString[0] == ',')
+                {
+                    preparedString = preparedString.Substring(1, preparedString.Length - 1);
+                }
 
                 delimiterIndex = GetDelimiterIndex(preparedString, isSpecialString, mode, i, out forceAddResult);
             }
@@ -210,11 +215,10 @@ namespace YY.EventLogReaderAssistant
             }
             
             if (isSpecialString)
-            {
                 return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
-            }
             
-            return sourceString.IndexOf(",", StringComparison.Ordinal);
+
+            return sourceString.IndexOf(",", StringComparison.Ordinal); ;
         }
         private static int CountSubstring(string sourceString, string sourceSubstring)
         {
