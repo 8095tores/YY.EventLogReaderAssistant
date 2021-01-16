@@ -31,13 +31,58 @@ namespace YY.EventLogReaderAssistant
             return Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,")
                 && !Regex.IsMatch(sourceString, @"^{\d{4}\d{2}\d{2}\d+,[\da-zA-Z]+},");
         }
-        public static bool ItsEndOfEvent(StreamReader stream)
+        public static bool ItsEndOfEvent(StreamReader stream, string currentFile, out string outputString)
         {
-            long previousStreamPosition = stream.GetPosition();
-            string nextString = stream.ReadLineWithoutNull();
-            stream.SetPosition(previousStreamPosition);
+            if (currentFile == null || stream == null)
+            {
+                outputString = null;
+                return true;
+            }
 
-            return ItsBeginOfEvent(nextString) || nextString == null;
+            outputString = stream.ReadLineWithoutNull();
+            return ItsBeginOfEvent(outputString) || outputString == null;
+        }
+        public static bool NextLineIsBeginEvent(StreamReader stream, string currentFile, out string resultString)
+        {
+            if (currentFile == null || stream == null)
+            {
+                resultString = null;
+                return false;
+            }
+
+            bool nextIsBeginEvent;
+            long currentStreamPosition = stream.GetPosition();
+
+            using (FileStream fileStreamCheckReader = new FileStream(currentFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                using (StreamReader checkReader = new StreamReader(fileStreamCheckReader))
+                {
+                    checkReader.SetPosition(currentStreamPosition);
+                    resultString = checkReader.ReadLineWithoutNull();
+                    nextIsBeginEvent = ItsBeginOfEvent(resultString);
+                }
+            }
+
+            return nextIsBeginEvent;
+        }
+        public static void FixEventPosition(string currentFilePath, ref long newStreamPosition, long sourceStreamPosition)
+        {
+            bool isCorrectBeginEvent = false;
+
+            FindNearestBeginEventPosition(
+                ref isCorrectBeginEvent,
+                currentFilePath,
+                ref newStreamPosition);
+
+            if (!isCorrectBeginEvent)
+            {
+                newStreamPosition = sourceStreamPosition;
+                FindNearestBeginEventPosition(
+                    ref isCorrectBeginEvent,
+                    currentFilePath,
+                    ref newStreamPosition,
+                    -1);
+            }
         }
 
         #endregion
@@ -106,13 +151,15 @@ namespace YY.EventLogReaderAssistant
                 }
                 else
                     bufferString += ",";
-
-                if (preparedString.Length > 0 && preparedString[0] == ',')
-                {
-                    preparedString = preparedString.Substring(1, preparedString.Length - 1);
-                }
-
+                
                 delimiterIndex = GetDelimiterIndex(preparedString, isSpecialString, mode, i, out forceAddResult);
+                if (delimiterIndex == 0)
+                {
+                    if (preparedString.Length > 0 && preparedString[0] == ',')
+                    {
+                        preparedString = preparedString.Substring(1, preparedString.Length - 1);
+                    }
+                }
             }
 
             return resultStrings;
@@ -122,6 +169,34 @@ namespace YY.EventLogReaderAssistant
 
         #region Private Methods
 
+        private static void FindNearestBeginEventPosition(ref bool isCorrectBeginEvent, string currentFilePath, ref long newStreamPosition, int stepSize = 1)
+        {
+            int attemptToFoundBeginEventLine = 0;
+            while (!isCorrectBeginEvent && attemptToFoundBeginEventLine < 10)
+            {
+                string beginEventLine;
+                using (FileStream fileStreamCheckPosition =
+                    new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    fileStreamCheckPosition.Seek(newStreamPosition, SeekOrigin.Begin);
+                    using (StreamReader fileStreamCheckReader = new StreamReader(fileStreamCheckPosition))
+                        beginEventLine = fileStreamCheckReader.ReadLineWithoutNull();
+                }
+
+                if (beginEventLine == null)
+                {
+                    isCorrectBeginEvent = false;
+                    break;
+                }
+
+                isCorrectBeginEvent = LogParserLGF.ItsBeginOfEvent(beginEventLine);
+                if (!isCorrectBeginEvent)
+                {
+                    newStreamPosition -= stepSize;
+                    attemptToFoundBeginEventLine += 1;
+                }
+            }
+        }
         private static bool AddResultString(ref string[] resultStrings, ref int i, ref string bufferString, bool isSpecialString, LogParserModeLGF mode, bool forceAddResult = false)
         {
             bool output = false;
@@ -216,9 +291,7 @@ namespace YY.EventLogReaderAssistant
             
             if (isSpecialString)
                 return sourceString.IndexOf("\",", StringComparison.Ordinal) + 1;
-            
-
-            return sourceString.IndexOf(",", StringComparison.Ordinal); ;
+            return sourceString.IndexOf(",", StringComparison.Ordinal);
         }
         private static int CountSubstring(string sourceString, string sourceSubstring)
         {

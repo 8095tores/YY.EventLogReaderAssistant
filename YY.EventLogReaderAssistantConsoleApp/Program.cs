@@ -11,6 +11,7 @@ namespace YY.EventLogReaderAssistantConsoleApp
         private static int _eventNumber;
         private static DateTime _lastPeriodEvent = DateTime.MinValue;
         private static EventLogPosition _currentPosition;
+        private static long _counterForUpdateInfo;
 
         static void Main(string[] args)
         {
@@ -54,13 +55,24 @@ namespace YY.EventLogReaderAssistantConsoleApp
         }
         private static void Reader_AfterReadFile(EventLogReader sender, AfterReadFileEventArgs args)
         {
+            if (_counterForUpdateInfo > 0)
+            {
+                Console.SetCursorPosition(0, Console.CursorTop - 2);
+                Console.WriteLine($"{DateTime.Now}: [+]{_eventNumber}");
+                Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
+                _counterForUpdateInfo = 0;
+            }
+
             Console.WriteLine($"{DateTime.Now}: Окончание чтения файла \"{args.FileName}\"");
         }
         private static void Reader_BeforeReadEvent(EventLogReader sender, BeforeReadEventArgs args)
         {
-            Console.SetCursorPosition(0, Console.CursorTop - 2);
-            Console.WriteLine($"{DateTime.Now}: (+){_eventNumber}");
-            Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
+            if (_counterForUpdateInfo >= 10000)
+            {
+                Console.SetCursorPosition(0, Console.CursorTop - 2);
+                Console.WriteLine($"{DateTime.Now}: (+){_eventNumber}");
+                Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
+            }
         }
         private static void Reader_AfterReadEvent(EventLogReader sender, AfterReadEventArgs args)
         {
@@ -69,11 +81,16 @@ namespace YY.EventLogReaderAssistantConsoleApp
                 _lastPeriodEvent = args.RowData.Period;
                 _eventNumber += 1;
                 _currentPosition = sender.GetCurrentPosition();
+                _counterForUpdateInfo++;
             }
 
-            Console.SetCursorPosition(0, Console.CursorTop - 2);
-            Console.WriteLine($"{DateTime.Now}: [+]{_eventNumber}");
-            Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
+            if (_counterForUpdateInfo >= 10000)
+            {
+                Console.SetCursorPosition(0, Console.CursorTop - 2);
+                Console.WriteLine($"{DateTime.Now}: [+]{_eventNumber}");
+                Console.WriteLine($"{DateTime.Now}: {_lastPeriodEvent}");
+                _counterForUpdateInfo = 0;
+            }
         }
         private static void Reader_OnErrorEvent(EventLogReader sender, OnErrorEventArgs args)
         {

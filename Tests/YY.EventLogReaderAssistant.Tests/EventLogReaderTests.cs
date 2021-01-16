@@ -167,7 +167,7 @@ namespace YY.EventLogReaderAssistant.Tests
             CheckIdAfterGoToEvent_Test(_sampleDatabaseFileLgd);
         }
         [Fact]
-        public void ReadOnChanging_OldFormat_LFG_Test()
+        public void ReadOnChanging_OldFormat_LGF_Test()
         {
             DateTime newLogRecordPeriod = DateTime.Now;
             RowData lastRowData;
