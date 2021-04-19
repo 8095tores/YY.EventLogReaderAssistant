@@ -61,7 +61,7 @@ namespace YY.EventLogReaderAssistant {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на &quot;,[\d]+.(\n|\r|\r\n){([\w\W]+|)},&quot;([\w\W]+|)&quot;,[\d]+,[\d]+,[\d]+,[\d]+,[\d]+,([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
+        ///   Ищет локализованную строку, похожую на &quot;,[\d]+.(\n|\r|\r\n){([\w\W]+|)},&quot;([\w\W]+|)&quot;,(\d+,)+(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
         /// </summary>
         internal static string EndOfComment {
             get {
@@ -70,7 +70,7 @@ namespace YY.EventLogReaderAssistant {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на },&quot;([\w\W]+|)&quot;,[\d]+,[\d]+,[\d]+,[\d]+,[\d]+,([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
+        ///   Ищет локализованную строку, похожую на },&quot;([\w\W]+|)&quot;,(\d+,)+(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
         /// </summary>
         internal static string EndOfData {
             get {
@@ -79,7 +79,7 @@ namespace YY.EventLogReaderAssistant {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на ,[\d]+,[\d]+,[\d]+,[\d]+,[\d]+,([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)([\d]+,|)(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
+        ///   Ищет локализованную строку, похожую на ,(\d+,)+(\n|\r|\r\n){[\d,]+}(\n|\r|\r\n)(}|,|).
         /// </summary>
         internal static string EndOfDataPresentation {
             get {
