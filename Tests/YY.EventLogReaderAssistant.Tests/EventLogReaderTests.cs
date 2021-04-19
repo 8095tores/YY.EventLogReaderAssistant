@@ -219,6 +219,7 @@ namespace YY.EventLogReaderAssistant.Tests
             RowData firstRow = null;
             RowData secondRow = null;
             RowData thirdRow = null;
+            RowData fourthRow = null;
             using (EventLogReader reader = EventLogReader.CreateReader(_sampleDatabaseFileLGFSpecialCases))
             {
                 if (reader.Read())
@@ -227,11 +228,14 @@ namespace YY.EventLogReaderAssistant.Tests
                     secondRow = reader.CurrentRow;
                 if (reader.Read())
                     thirdRow = reader.CurrentRow;
+                if (reader.Read())
+                    fourthRow = reader.CurrentRow;
             }
             
             Assert.NotNull(firstRow);
             Assert.NotNull(secondRow);
             Assert.NotNull(thirdRow);
+            Assert.NotNull(fourthRow);
 
             string expectedDataFirstRow =
                 "{\"P\",\n" +
@@ -250,6 +254,9 @@ namespace YY.EventLogReaderAssistant.Tests
             Assert.Equal(expectedDataSecondRow, secondRow.Data);
             Assert.Equal(new DateTime(2020,8,25,0,22,17), thirdRow.TransactionDate);
             Assert.Equal(211, thirdRow.TransactionId);
+            Assert.Equal("THIS IS COMMENT", fourthRow.Comment);
+            Assert.Equal("I AM TEST", fourthRow.DataPresentation);
+            Assert.Equal(187497, fourthRow.ConnectId);
         }
         [Fact]
         public void FullComparison_LGF_Test()
